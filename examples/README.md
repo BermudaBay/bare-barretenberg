@@ -36,7 +36,7 @@ open ios/BareBarretenberg.xcodeproj
 
 The app runs its worklet on Bare Kit's JavaScriptCore engine (`ios/Engine`) rather than V8. V8 reserves 4 GiB of address space for its compressed pointers when a worklet starts, which iPhones with 4 GB of memory grant only to apps signed with the Extended Virtual Addressing entitlement, and personal teams cannot sign that. Bare's JavaScriptCore loads no ES modules and has no `SharedArrayBuffer`, hence the CommonJS bundle and the Node.js globals without `Worker`. Proving runs natively either way.
 
-On an iPhone 11 Pro Max (A13, 4 GB), after a 2.4 s warmup, a shield (`transact2x4`) proves in 1.35 s and a three-input transfer (`transact4x8`) in 2.05 s, witness included; the app peaks at 501 MiB.
+On an iPhone 11 Pro Max (A13, 4 GB), after a 1.1 s warmup, a shield (`transact2x4`) proves in 1.35 s and a three-input transfer (`transact4x8`) in 2.06 s, witness included; the app peaks at 506 MiB.
 
 ### Android
 
@@ -50,5 +50,5 @@ Then open `android/` in Android Studio, or run `gradle installDebug` there. `npm
 
 - The apps run on arm64 devices, the iOS simulator on Apple silicon, and arm64 and x86_64 Android emulators. barretenberg has no build for the x64 iOS simulator.
 - Bare Kit comes from [bare-kit-swift](https://github.com/holepunchto/bare-kit-swift) 2.4.0 and [bare-kit-kotlin](https://github.com/holepunchto/bare-kit-kotlin) v0.2.6, both on Bare 1.37, which the addon and Bare's own modules require.
-- `vendor/bermuda-sdk-0.3.7-arc-8658adab.tgz` is `@bermuda/sdk` at commit 8658adab, under its own license (BUSL-1.1, in the archive).
+- `vendor/bermuda-sdk-0.3.7-arc-2f52e09c.tgz` is `@bermuda/sdk` at commit 2f52e09c, under its own license (BUSL-1.1, in the archive).
 - `fixtures/` holds inputs that the SDK's test harness built for its test chain (31337), whose circuits ship inside the SDK. `app.js` bundles those two circuits and hands them to the SDK through `circuitsBaseUrl`. On a deployed chain, the SDK fetches its circuits from `config.artifacts`: pass them to `prefetch()` as `files` and set `globalThis.fetch = cachedFetch(dir)`, so they are read from the app's storage too.

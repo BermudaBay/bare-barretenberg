@@ -9,7 +9,7 @@
   "dependencies": {
     "@aztec-foundation/bb.js": "6.0.0",
     "@bermuda/bare-barretenberg": "file:..",
-    "@bermuda/sdk": "file:vendor/bermuda-sdk-0.3.7-arc-8658adab.tgz",
+    "@bermuda/sdk": "file:vendor/bermuda-sdk-0.3.7-arc-2f52e09c.tgz",
     "bare-node-runtime": "1.5.5"
   },
   "devDependencies": {
