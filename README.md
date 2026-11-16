@@ -35,7 +35,8 @@ const { proof, publicInputs } = await backend.generateProof(witness, { verifierT
 // The settings verifierTarget 'evm' stands for.
 const settings = { ipaAccumulation: false, oracleHashType: 'keccak', disableZk: false, optimizedSolidityVerifier: false }
 
-// Once per circuit.
+// Once per circuit. A circuit that ships its key needs no computation: the Bermuda SDK's carry it as
+// `verification_key`, base64.
 const bytecode = pako.ungzip(Buffer.from(circuit.bytecode, 'base64'))
 const { bytes: verificationKey } = await api.circuitComputeVk({ circuit: { name: 'circuit', bytecode }, settings })
 
