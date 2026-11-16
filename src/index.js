@@ -20,7 +20,11 @@ class Backend {
   async destroy() {}
 }
 
-/** Drop-in for `Noir` from `@noir-lang/noir_js`: `execute()` runs Noir's ACVM natively, no WebAssembly. */
+/**
+ * Drop-in for `Noir` from `@noir-lang/noir_js`: `execute()` runs Noir's ACVM natively, no WebAssembly.
+ * Besides noir_js's gzipped `witness`, it returns `uncompressedWitness`, the witness stack as
+ * barretenberg reads it, which spares gzipping it here and gunzipping it again before proving.
+ */
 class Noir {
   constructor(circuit) {
     this.circuit = circuit
@@ -33,9 +37,15 @@ class Noir {
       await serial(binding.execute, this.bytecode, this.abi, Buffer.from(JSON.stringify(inputs)))
     )
     const length = out.readUInt32LE(0)
+    const uncompressedWitness = new Uint8Array(out.subarray(4, 4 + length))
+    let witness = null
 
     return {
-      witness: new Uint8Array(out.subarray(4, 4 + length)),
+      uncompressedWitness,
+      // Gzipped only when read: compressing takes about half as long as executing the circuit.
+      get witness() {
+        return (witness ??= new Uint8Array(binding.gzip(uncompressedWitness)))
+      },
       returnValue: JSON.parse(out.subarray(4 + length).toString())
     }
   }

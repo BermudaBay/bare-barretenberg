@@ -258,7 +258,10 @@ version = "0.1.0"
 dependencies = [
  "acvm",
  "bn254_blackbox_solver",
+ "flate2",
  "noirc_abi",
+ "rmp-serde",
+ "serde",
  "serde_json",
 ]
 

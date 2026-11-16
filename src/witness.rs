@@ -6,6 +6,7 @@
 //! messages come out as noir_js produces them.
 
 use std::collections::BTreeMap;
+use std::io::Read;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use acvm::acir::SerializationFormat;
@@ -18,9 +19,12 @@ use acvm::pwg::{
 };
 use acvm::{AcirField, FieldElement};
 use bn254_blackbox_solver::Bn254BlackBoxSolver;
+use flate2::Compression;
+use flate2::bufread::GzEncoder;
 use noirc_abi::errors::InputParserError;
 use noirc_abi::input_parser::{InputValue, json::JsonTypes};
 use noirc_abi::{Abi, AbiErrorType, decode_value, display_abi_error};
+use serde::Serialize;
 
 type F = FieldElement;
 
@@ -35,7 +39,7 @@ enum ExecError {
     Js(String),
 }
 
-/// Runs noir_js `Noir.execute` and returns the gzipped witness stack and the return value JSON.
+/// Runs noir_js `Noir.execute` and returns the witness stack, uncompressed, and the return value JSON.
 fn execute(bytecode: &[u8], abi_json: &[u8], inputs_json: &[u8]) -> Result<(Vec<u8>, String), String> {
     let abi: Abi = serde_json::from_slice(abi_json).map_err(|err| err.to_string())?;
     let initial_witness = abi_encode(&abi, inputs_json)?;
@@ -49,12 +53,30 @@ fn execute(bytecode: &[u8], abi_json: &[u8], inputs_json: &[u8]) -> Result<(Vec<
     for (index, witness) in stack {
         witness_stack.push(index, witness);
     }
-    // acvm_js reads the format from an env var that never exists in wasm, i.e. it uses the default.
-    let witness = witness_stack
-        .serialize_with_format(SerializationFormat::default())
-        .map_err(|err| err.to_string())?;
+    Ok((serialize(&witness_stack)?, return_value))
+}
 
-    Ok((witness, return_value))
+/// The witness stack as barretenberg reads it: acvm's `serialize_with_format` in the default
+/// format (acvm_js reads the format from an env var that never exists in wasm), which writes the
+/// format byte and then msgpack with structs as tuples, but without the gzip acvm wraps it in.
+/// acvm keeps that serialization private, so it is spelled out here, as acvm does it.
+fn serialize(stack: &WitnessStack<F>) -> Result<Vec<u8>, String> {
+    let mut buf = vec![u8::from(SerializationFormat::MsgpackCompact)];
+    let mut serializer = rmp_serde::Serializer::new(&mut buf)
+        .with_bytes(rmp_serde::config::BytesMode::ForceIterables)
+        .with_struct_tuple();
+    Serialize::serialize(stack, &mut serializer).map_err(|err| err.to_string())?;
+    Ok(buf)
+}
+
+/// Gzips as acvm gzips a serialized witness stack (`bufread::GzEncoder`, best compression), so a
+/// witness from `execute` comes out as noir_js's `compressWitnessStack` bytes.
+fn gzip(input: &[u8]) -> Result<Vec<u8>, String> {
+    let mut buf = Vec::new();
+    GzEncoder::new(input, Compression::best())
+        .read_to_end(&mut buf)
+        .map_err(|err| err.to_string())?;
+    Ok(buf)
 }
 
 /// noirc_abi wasm `abiEncode(abi, inputs)`; `inputs_json` is `JSON.stringify(inputs)`, as the wasm sees it.
@@ -259,10 +281,11 @@ unsafe fn borrow<'a>(ptr: *const u8, len: usize) -> Result<&'a [u8], String> {
 
 /// Executes a compiled Noir program on ABI inputs, as noir_js's `Noir.execute` does.
 ///
-/// On success returns 0 and sets `*out` to: u32 little-endian witness length, the gzipped witness
-/// stack (as acvm_js `compressWitnessStack`), then the return value as UTF-8 JSON ("null" if none).
-/// On failure returns 1 and sets `*out` to a UTF-8 error message. Release `*out` with
-/// `bare_barretenberg_free`. Returns -1, writing nothing, if `out` or `out_len` is null.
+/// On success returns 0 and sets `*out` to: u32 little-endian witness length, the witness stack
+/// uncompressed (`bare_barretenberg_gzip` turns it into acvm_js `compressWitnessStack`'s bytes),
+/// then the return value as UTF-8 JSON ("null" if none). On failure returns 1 and sets `*out` to a
+/// UTF-8 error message. Release `*out` with `bare_barretenberg_free`. Returns -1, writing nothing,
+/// if `out` or `out_len` is null.
 ///
 /// # Safety
 /// Each input pointer must be valid for its length (or the length 0); `out` and `out_len` must be
@@ -282,22 +305,49 @@ pub unsafe extern "C" fn bare_barretenberg_execute(
         return -1;
     }
 
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let (witness, return_value) = unsafe {
-            execute(
-                borrow(bytecode, bytecode_len)?,
-                borrow(abi_json, abi_len)?,
-                borrow(inputs_json, inputs_len)?,
-            )?
-        };
-        let witness_len = u32::try_from(witness.len()).map_err(|err| err.to_string())?;
-        let mut buf = Vec::with_capacity(4 + witness.len() + return_value.len());
-        buf.extend_from_slice(&witness_len.to_le_bytes());
-        buf.extend_from_slice(&witness);
-        buf.extend_from_slice(return_value.as_bytes());
-        Ok::<_, String>(buf)
-    }))
-    .unwrap_or_else(|panic| {
+    respond(
+        catch_unwind(AssertUnwindSafe(|| {
+            let (witness, return_value) = unsafe {
+                execute(
+                    borrow(bytecode, bytecode_len)?,
+                    borrow(abi_json, abi_len)?,
+                    borrow(inputs_json, inputs_len)?,
+                )?
+            };
+            let witness_len = u32::try_from(witness.len()).map_err(|err| err.to_string())?;
+            let mut buf = Vec::with_capacity(4 + witness.len() + return_value.len());
+            buf.extend_from_slice(&witness_len.to_le_bytes());
+            buf.extend_from_slice(&witness);
+            buf.extend_from_slice(return_value.as_bytes());
+            Ok(buf)
+        })),
+        out,
+        out_len,
+    )
+}
+
+/// Gzips a witness stack from `bare_barretenberg_execute` into noir_js's bytes for it. Returns and
+/// sets `*out` as `bare_barretenberg_execute` does.
+///
+/// # Safety
+/// As for `bare_barretenberg_execute`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bare_barretenberg_gzip(
+    input: *const u8,
+    input_len: usize,
+    out: *mut *mut u8,
+    out_len: *mut usize,
+) -> i32 {
+    if out.is_null() || out_len.is_null() {
+        return -1;
+    }
+
+    respond(catch_unwind(AssertUnwindSafe(|| gzip(unsafe { borrow(input, input_len)? }))), out, out_len)
+}
+
+/// Hands a result to C: 0 and the bytes, or 1 and the error message (a panic's included).
+fn respond(result: std::thread::Result<Result<Vec<u8>, String>>, out: *mut *mut u8, out_len: *mut usize) -> i32 {
+    let result = result.unwrap_or_else(|panic| {
         let reason = panic
             .downcast_ref::<&str>()
             .map(|s| s.to_string())
@@ -318,10 +368,10 @@ pub unsafe extern "C" fn bare_barretenberg_execute(
     code
 }
 
-/// Frees a buffer returned through `bare_barretenberg_execute`'s `out`.
+/// Frees a buffer returned through the `out` of `bare_barretenberg_execute` or `bare_barretenberg_gzip`.
 ///
 /// # Safety
-/// `ptr` and `len` must be exactly what `bare_barretenberg_execute` returned, freed once; null is a no-op.
+/// `ptr` and `len` must be exactly what one of those returned, freed once; null is a no-op.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bare_barretenberg_free(ptr: *mut u8, len: usize) {
     if !ptr.is_null() {

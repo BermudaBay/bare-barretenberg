@@ -18,6 +18,9 @@ bbfree(void *ptr);
 int32_t
 bare_barretenberg_execute(const uint8_t *bytecode, size_t bytecode_len, const uint8_t *abi_json, size_t abi_len, const uint8_t *inputs_json, size_t inputs_len, uint8_t **out, size_t *out_len);
 
+int32_t
+bare_barretenberg_gzip(const uint8_t *in, size_t in_len, uint8_t **out, size_t *out_len);
+
 void
 bare_barretenberg_free(uint8_t *ptr, size_t len);
 
@@ -156,6 +159,48 @@ bare_barretenberg_execute_witness(js_env_t *env, js_callback_info_t *info) {
   return bare_barretenberg__queue(env, info, true);
 }
 
+// Gzips a witness from `execute` into noir_js's bytes for it. It runs on the JavaScript thread, so
+// only code that reads `witness` rather than `uncompressedWitness` pays for it.
+static js_value_t *
+bare_barretenberg_gzip_witness(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  void *data;
+  size_t len;
+  err = js_get_typedarray_info(env, argv[0], NULL, &data, &len, NULL, NULL);
+  assert(err == 0);
+
+  uint8_t *out;
+  size_t out_len;
+  int32_t status = bare_barretenberg_gzip(data, len, &out, &out_len);
+
+  js_value_t *result = NULL;
+
+  if (status == 0) {
+    void *buf;
+    err = js_create_arraybuffer(env, out_len, &buf, &result);
+    assert(err == 0);
+
+    memcpy(buf, out, out_len);
+  } else {
+    char *message = strndup((const char *) out, out_len);
+    err = js_throw_error(env, NULL, message);
+    assert(err == 0);
+
+    free(message);
+  }
+
+  bare_barretenberg_free(out, out_len);
+
+  return result;
+}
+
 static js_value_t *
 bare_barretenberg_exports(js_env_t *env, js_value_t *exports) {
   int err;
@@ -171,6 +216,7 @@ bare_barretenberg_exports(js_env_t *env, js_value_t *exports) {
 
   V("bbapi", bare_barretenberg_bbapi)
   V("execute", bare_barretenberg_execute_witness)
+  V("gzip", bare_barretenberg_gzip_witness)
 #undef V
 
   return exports;

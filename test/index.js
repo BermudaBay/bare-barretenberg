@@ -49,3 +49,21 @@ test('prefetch caches files that cachedFetch then serves from disk', async (t) =
 
   t.alike(Buffer.from(await response.arrayBuffer()), g2)
 })
+
+test('proves from the uncompressed witness with a precomputed verification key', async (t) => {
+  const settings = { ipaAccumulation: false, oracleHashType: 'keccak', disableZk: false, optimizedSolidityVerifier: false }
+  const api = await createBarretenberg(Barretenberg, { dir })
+  const { acirUncompressedBytecode: bytecode } = new UltraHonkBackend(circuit.bytecode, api)
+  const { bytes: verificationKey } = await api.circuitComputeVk({ circuit: { name: 'circuit', bytecode }, settings })
+  const { uncompressedWitness } = await new Noir(circuit).execute(inputs)
+
+  const { proof, publicInputs } = await api.circuitProve({
+    witness: uncompressedWitness,
+    circuit: { name: 'circuit', bytecode, verificationKey },
+    settings
+  })
+
+  t.ok((await api.circuitVerify({ verificationKey, publicInputs, proof, settings })).verified)
+
+  await api.destroy()
+})
