@@ -4,7 +4,8 @@
 // 1. The addon's import map (see main.js) hands the SDK this package in place of
 //    @noir-lang/noir_js, so witnesses are generated natively.
 // 2. Barretenberg.new is pointed at the native backend before the first proof.
-// 3. prefetch() fills the app's storage with the CRS once, off the proving path.
+// 3. prefetch() fills the app's storage with the CRS once, and the SDK's warmup() loads the
+//    circuits, both off the proving path.
 //
 // esbuild bundles this file with the SDK into build/app.cjs (`npm run bundle`).
 import { Barretenberg } from '@aztec-foundation/bb.js'
@@ -40,6 +41,11 @@ IPC.once('data', async (data) => {
     globalThis.fetch = async (url, init) => (url in circuits ? { ok: true, json: async () => circuits[url] } : fetch(url, init))
 
     const prover = initProver({ chainId: 31337n, circuitsBaseUrl: 'bundle:' })
+
+    // Also off the proving path: barretenberg, and each circuit with its verification key.
+    start = Date.now()
+    await prover.warmup(['transact2x4', 'transact4x8'])
+    report({ step: 'warmup', ms: Date.now() - start })
 
     for (const [step, prove, { inputs }] of [
       ['shield 2x4', prover.prove2x4, shield],

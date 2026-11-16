@@ -4,7 +4,7 @@ Noir witness generation and multithreaded barretenberg proving for [Bare](https:
 
 Bare runs V8 without a JIT on iOS, so `WebAssembly` is not available there. Even where it is, Bare cannot share a WebAssembly memory between threads, so bb.js would prove on a single thread. This addon replaces both WebAssembly parts of proving:
 
-- `Noir` runs Noir's ACVM natively (the noir crates of Noir 1.0.0). It is a drop-in for `Noir` from `@noir-lang/noir_js` 1.0.0 and yields the same witness bytes.
+- `Noir` runs Noir's ACVM natively (the noir crates of Noir 1.0.0). It is a drop-in for `Noir` from `@noir-lang/noir_js` 1.0.0 and yields the same witness bytes, gzipped only when read; `uncompressedWitness` is the witness stack as barretenberg reads it.
 - `createBarretenberg()` gives a bb.js `Barretenberg` over the native barretenberg library of aztec-packages 6.0.0, which proves on all cores. It is meant for `@aztec-foundation/bb.js` 6.0.0, the same release.
 
 ## Usage
@@ -28,6 +28,25 @@ const { proof, publicInputs } = await backend.generateProof(witness, { verifierT
 ```
 
 `verifierTarget: 'evm'` is the zero-knowledge proof that barretenberg's Solidity verifiers check; `'evm-no-zk'` would leave out the zero knowledge.
+
+`generateProof` recomputes the circuit's verification key in every proof and gunzips the witness again. Proving as the Bermuda SDK does skips both, about a quarter of each proof:
+
+```js
+// The settings verifierTarget 'evm' stands for.
+const settings = { ipaAccumulation: false, oracleHashType: 'keccak', disableZk: false, optimizedSolidityVerifier: false }
+
+// Once per circuit.
+const bytecode = pako.ungzip(Buffer.from(circuit.bytecode, 'base64'))
+const { bytes: verificationKey } = await api.circuitComputeVk({ circuit: { name: 'circuit', bytecode }, settings })
+
+// Per proof: `proof` holds the proof's field elements, `publicInputs` the public inputs, 32 bytes each.
+const { uncompressedWitness } = await noir.execute(inputs)
+const { proof, publicInputs } = await api.circuitProve({
+  witness: uncompressedWitness,
+  circuit: { name: 'circuit', bytecode, verificationKey },
+  settings
+})
+```
 
 ### Prefetching
 
