@@ -1,0 +1,7 @@
+{
+  "@noir-lang/noir_js": "@bermuda/bare-barretenberg",
+  "worker_threads": "@bermuda/bare-barretenberg/worker-threads",
+  "node:worker_threads": "@bermuda/bare-barretenberg/worker-threads",
+  "bufferutil": "@bermuda/bare-barretenberg/unavailable",
+  "utf-8-validate": "@bermuda/bare-barretenberg/unavailable"
+}

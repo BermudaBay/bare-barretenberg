@@ -1,0 +1,250 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B0000000000000000000A001 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000A001 /* App.swift */; };
+		B0000000000000000000A002 /* app.bundle in Resources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000A002 /* app.bundle */; };
+		B0000000000000000000A003 /* Engine in Frameworks */ = {isa = PBXBuildFile; productRef = D0000000000000000000A001 /* Engine */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F0000000000000000000A001 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		F0000000000000000000A002 /* app.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = app.bundle; sourceTree = "<group>"; };
+		F0000000000000000000A003 /* BareBarretenberg.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BareBarretenberg.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E0000000000000000000A002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0000000000000000000A003 /* Engine in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A0000000000000000000A001 = {
+			isa = PBXGroup;
+			children = (
+				F0000000000000000000A001 /* App.swift */,
+				F0000000000000000000A002 /* app.bundle */,
+				A0000000000000000000A002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A0000000000000000000A002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F0000000000000000000A003 /* BareBarretenberg.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C0000000000000000000A001 /* App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 90000000000000000000A002 /* Build configuration list for PBXNativeTarget "App" */;
+			buildPhases = (
+				E0000000000000000000A001 /* Sources */,
+				E0000000000000000000A002 /* Frameworks */,
+				E0000000000000000000A003 /* Resources */,
+				E0000000000000000000A004 /* Embed addons */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = App;
+			packageProductDependencies = (
+				D0000000000000000000A001 /* Engine */,
+			);
+			productName = App;
+			productReference = F0000000000000000000A003 /* BareBarretenberg.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		70000000000000000000A001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 90000000000000000000A001 /* Build configuration list for PBXProject "BareBarretenberg" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A0000000000000000000A001;
+			packageReferences = (
+				60000000000000000000A001 /* XCLocalSwiftPackageReference "Engine" */,
+			);
+			productRefGroup = A0000000000000000000A002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C0000000000000000000A001 /* App */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E0000000000000000000A003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0000000000000000000A002 /* app.bundle in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E0000000000000000000A004 /* Embed addons */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed addons";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Embeds the worklet's native addons, which `npm run ios` links into addons/, the way Xcode embeds a\n# framework: the slice for this platform, into the app's Frameworks, signed.\nset -e\ncase \"$PLATFORM_NAME\" in\n  iphonesimulator) slice=ios-arm64-simulator ;;\n  *) slice=ios-arm64 ;;\nesac\ndest=\"$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH\"\nmkdir -p \"$dest\"\nfor xcframework in \"$SRCROOT\"/addons/*.xcframework; do\n  for framework in \"$xcframework/$slice\"/*.framework; do\n    rm -rf \"$dest/${framework##*/}\"\n    cp -R \"$framework\" \"$dest/\"\n    codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" \"$dest/${framework##*/}\"\n  done\ndone\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E0000000000000000000A001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0000000000000000000A001 /* App.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		80000000000000000000A001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		80000000000000000000A002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		80000000000000000000A003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.bermudabay.barretenberg.example;
+				PRODUCT_NAME = BareBarretenberg;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		80000000000000000000A004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.bermudabay.barretenberg.example;
+				PRODUCT_NAME = BareBarretenberg;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		90000000000000000000A001 /* Build configuration list for PBXProject "BareBarretenberg" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80000000000000000000A001 /* Debug */,
+				80000000000000000000A002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		90000000000000000000A002 /* Build configuration list for PBXNativeTarget "App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80000000000000000000A003 /* Debug */,
+				80000000000000000000A004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		60000000000000000000A001 /* XCLocalSwiftPackageReference "Engine" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Engine;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D0000000000000000000A001 /* Engine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Engine;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 70000000000000000000A001 /* Project object */;
+}

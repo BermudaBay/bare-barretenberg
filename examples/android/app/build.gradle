@@ -1,0 +1,28 @@
+plugins {
+  id "com.android.application"
+}
+
+android {
+  namespace = "xyz.bermudabay.barretenberg.example"
+  compileSdk = 36
+
+  defaultConfig {
+    applicationId = "xyz.bermudabay.barretenberg.example"
+    minSdk = 29
+    targetSdk = 36
+    versionCode = 1
+    versionName = "1.0"
+  }
+
+  // The native addons of the worklet, which `npm run android` links into src/main/addons/<abi>/.
+  sourceSets {
+    main {
+      jniLibs.srcDirs "src/main/addons"
+    }
+  }
+}
+
+dependencies {
+  implementation "com.github.holepunchto.bare-kit-kotlin:bare-kit-kotlin:v0.2.6"
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
+}

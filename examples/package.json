@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "name": "bare-barretenberg-examples",
+  "scripts": {
+    "bundle": "esbuild app.js --bundle --format=cjs --platform=node --log-level=error --external:@bermuda/bare-barretenberg --external:@noir-lang/noir_js --external:bufferutil --external:utf-8-validate --outfile=build/app.cjs",
+    "ios": "npm run bundle && bare-link --host ios-arm64 --host ios-arm64-simulator --out ios/addons worklet.js && bare-pack --host ios-arm64 --host ios-arm64-simulator --linked --out ios/app.bundle worklet.js",
+    "android": "npm run bundle && bare-link --host android-arm64 --host android-x64 --out android/app/src/main/addons worklet.js && bare-pack --host android-arm64 --host android-x64 --linked --out android/app/src/main/assets/app.bundle worklet.js"
+  },
+  "dependencies": {
+    "@aztec-foundation/bb.js": "6.0.0",
+    "@bermuda/bare-barretenberg": "file:..",
+    "@bermuda/sdk": "file:vendor/bermuda-sdk-0.3.7-arc-c98bfc97.tgz",
+    "bare-node-runtime": "1.5.5"
+  },
+  "devDependencies": {
+    "bare-link": "4.3.0",
+    "bare-pack": "3.2.0",
+    "esbuild": "0.28.2"
+  }
+}

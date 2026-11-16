@@ -1,0 +1,30 @@
+[package]
+name = "bare-barretenberg"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89.0"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+name = "bare_barretenberg"
+path = "src/witness.rs"
+crate-type = ["staticlib"]
+
+# Noir v1.0.0 (275d3ab1a5c916c6ea73e8d6b943f685f574500c), the release noir_js 1.0.0 is built from.
+# Cargo.lock started from that tag's lockfile so the shared crates.io deps (flate2, miniz_oxide,
+# rmp-serde, serde_json, ark-*) match the versions the acvm_js/noirc_abi wasm was built with.
+[dependencies]
+acvm = { git = "https://github.com/noir-lang/noir", tag = "v1.0.0", features = ["bn254"] }
+bn254_blackbox_solver = { git = "https://github.com/noir-lang/noir", tag = "v1.0.0" }
+noirc_abi = { git = "https://github.com/noir-lang/noir", tag = "v1.0.0", features = ["bn254"] }
+serde_json = "=1.0.154"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false
+incremental = false
+# Unwind (not abort) so bare_barretenberg_execute can turn a panic into an error result.
+panic = "unwind"

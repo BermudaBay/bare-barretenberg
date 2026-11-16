@@ -1,0 +1,12 @@
+# Written by `npm run ios` and `npm run android`, and by Xcode and Gradle.
+ios/addons/
+ios/app.bundle
+ios/BareBarretenberg.xcodeproj/project.xcworkspace/
+ios/BareBarretenberg.xcodeproj/xcuserdata/
+android/app/src/main/addons/
+android/app/src/main/assets/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+build/
