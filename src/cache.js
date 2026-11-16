@@ -1,6 +1,7 @@
+const dns = require('bare-dns')
 const fs = require('bare-fs')
+const https = require('bare-https')
 const path = require('bare-path')
-const fetch = globalThis.fetch || require('bare-fetch')
 
 // The CRS of bb.js 6.0.0: the hosts it downloads from and the files it caches, so that a
 // directory filled here is also one bb.js can read, and the other way round.
@@ -35,15 +36,15 @@ async function prefetch({ dir, crs = {}, files = [] }) {
     const file = cached(dir, url)
     if (await size(file)) continue
 
-    const response = await fetch(url)
-    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
+    const { status, body } = await get(url)
+    if (status !== 200) throw new Error(`${url}: HTTP ${status}`)
 
-    await writeAtomic(file, new Uint8Array(await response.arrayBuffer()))
+    await writeAtomic(file, body)
   }
 }
 
-/** A `fetch()` that answers from `dir` for each URL `prefetch()` cached there, and otherwise fetches. */
-function cachedFetch(dir, next = fetch) {
+/** A `fetch()` that answers from `dir` for each URL `prefetch()` cached there, and otherwise calls `next`. */
+function cachedFetch(dir, next = globalThis.fetch) {
   return async function (url, init) {
     const file = cached(dir, String(url.url ?? url))
 
@@ -78,18 +79,49 @@ async function download(dir, name, remote, bytes) {
   let error
   for (const host of HOSTS) {
     try {
-      const response = await fetch(`${host}/${remote}`, bytes > 128 ? { headers: { Range: `bytes=0-${bytes - 1}` } } : {})
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const { status, body } = await get(`${host}/${remote}`, bytes > 128 ? { Range: `bytes=0-${bytes - 1}` } : {})
+      if (status !== 200 && status !== 206) throw new Error(`HTTP ${status}`)
+      if (body.length < bytes) throw new Error(`${body.length} of ${bytes} bytes`)
 
-      const data = new Uint8Array(await response.arrayBuffer())
-      if (data.length < bytes) throw new Error(`${data.length} of ${bytes} bytes`)
-
-      return await writeAtomic(file, data.subarray(0, bytes))
+      return await writeAtomic(file, body.subarray(0, bytes))
     } catch (err) {
       error = new Error(`${host}/${remote}: ${err.message}`)
     }
   }
   throw error
+}
+
+// Bare connects to the addresses of a host one after another, in the order the resolver gives them,
+// which puts IPv6 first. Where IPv6 is unreachable, as on many phone networks, each IPv6 address
+// costs a 75 s connect timeout before IPv4 is tried. So IPv4 goes first; where it is missing, as on
+// IPv6-only networks, connecting fails at once and IPv6 follows.
+function lookup(host, opts, callback) {
+  dns.lookup(host, opts, (err, addresses) => {
+    if (err) return callback(err)
+    callback(null, addresses.slice().sort((a, b) => a.family - b.family))
+  })
+}
+
+/** GETs `url` with `headers`, following redirects. */
+function get(url, headers = {}, redirects = 5) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, { headers, lookup }, (response) => {
+        const { statusCode: status, headers: { location } } = response
+
+        if (status >= 300 && status < 400 && location && redirects > 0) {
+          response.resume()
+          return resolve(get(new URL(location, url).href, headers, redirects - 1))
+        }
+
+        const chunks = []
+        response
+          .on('data', (chunk) => chunks.push(chunk))
+          .on('end', () => resolve({ status, body: Buffer.concat(chunks) }))
+          .on('error', reject)
+      })
+      .on('error', reject)
+  })
 }
 
 function cached(dir, url) {
