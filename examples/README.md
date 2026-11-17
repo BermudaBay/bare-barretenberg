@@ -10,7 +10,7 @@ You need Xcode with your Apple ID added (Xcode > Settings > Accounts > +; a free
 2. Run `examples/ios/bench.sh`, from any directory.
 3. Do what it says on the iPhone, such as tapping Trust, turning on Developer Mode or trusting the developer app, then run it again.
 
-The first run builds the prover, which takes about 10-15 minutes; later runs take a couple of minutes. The script installs the npm packages, builds and installs the app, runs it twice and prints the mean time of each step, among them a shield and every transfer and withdraw shape. Each benchmark is saved in `ios/results/`: a line naming the iPhone, its iOS and the versions of bare-barretenberg and the SDK, then each run's raw times. `RUNS=5` runs the app five times; `DEVICE`, `TEAM` and `BUNDLE_ID` pick the iPhone, the Xcode team and the app identifier. The script links and packs the app for devices only, so run `npm run ios` before using the simulator.
+The first run builds the prover, which takes about 10-15 minutes; later runs take a couple of minutes. The script installs the npm packages, builds and installs the app, runs it twice and prints the mean time of each step, among them every deposit, transfer and withdraw shape. Each benchmark is saved in `ios/results/`: a line naming the iPhone, its iOS and the versions of bare-barretenberg and the SDK, then each run's raw times. `RUNS=5` runs the app five times; `DEVICE`, `TEAM` and `BUNDLE_ID` pick the iPhone, the Xcode team and the app identifier. The script links and packs the app for devices only, so run `npm run ios` before using the simulator.
 
 ## How the pieces connect
 
@@ -25,7 +25,7 @@ App.swift / MainActivity.kt         the native app: starts the worklet, sends it
 2. `app.js` points `Barretenberg.new` at `createBarretenberg()` before the first proof, so the SDK's prover runs on native barretenberg.
 3. `app.js` calls `prefetch({ dir })` first, which downloads the CRS once into the app's storage, then the SDK's `warmup()`, which loads barretenberg, and again before each circuit's first proof, which loads the circuit with its verification key: all off the proving path. The SDK's prover keeps only the four circuits it used last, hence one circuit at a time. The app sends `dir` as its first IPC message.
 
-The worklet then proves a shield (`transact2x4`) and a transfer on each transact shape (`transact2x4`, `transact4x8`, `transact2x16`, `transact16x4`), and a withdrawal on each withdraw shape (`withdraw2x2`, `withdraw16x2`, `withdrawDox2x2`, `withdrawDox16x2`), with the SDK's prover, three times each. It reports how long each circuit took to load, each proof's time and the peak memory.
+The worklet then proves a deposit on each shape the SDK deposits on (`transact2x4`, `transact4x8`, `transact2x16`), a transfer on each transact shape (`transact2x4`, `transact4x8`, `transact2x16`, `transact16x4`), and a withdrawal on each withdraw shape (`withdraw2x2`, `withdraw16x2`, `withdrawDox2x2`, `withdrawDox16x2`), with the SDK's prover, three times each. It reports how long each circuit took to load, each proof's time and the peak memory.
 
 ## Running
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Measures how fast the plugged-in iPhone proves a shield and every transfer and withdraw shape:
+# Measures how fast the plugged-in iPhone proves every deposit, transfer and withdraw shape:
 # builds the prover and the example app, puts the app on the iPhone, runs it twice and saves the
 # times in ios/results/. Run it from anywhere.
 # The first run builds the prover, about 10-15 minutes. Later runs take a couple of minutes.
