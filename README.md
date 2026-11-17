@@ -76,6 +76,24 @@ To read a deployed chain's circuits from the app's storage too, prefetch them as
 
 [`examples/`](examples) shows the whole wiring in an iOS and an Android app. To see how fast your iPhone proves, plug it in and run `examples/ios/bench.sh` ([more](examples/README.md#benchmark-on-your-iphone)).
 
+## Proving times
+
+On an iPhone 14 Pro Max (A16, 6 GB, iOS 27.2.1), `examples/ios/bench.sh` timed the Bermuda SDK at 2f52e09c proving a shield and each transfer and withdraw shape. Each time is the mean of six proofs, witness generation included. A circuit is loaded once, before its first proof:
+
+| Proof            | Circuit           |    Proof | Circuit load |
+| ---------------- | ----------------- | -------: | -----------: |
+| shield           | `transact2x4`     |   831 ms |       268 ms |
+| transfer         | `transact2x4`     |   847 ms |            – |
+| transfer         | `transact4x8`     | 1,274 ms |       453 ms |
+| transfer         | `transact2x16`    | 1,401 ms |       571 ms |
+| transfer         | `transact16x4`    | 1,366 ms |       574 ms |
+| withdraw         | `withdraw2x2`     |   726 ms |       241 ms |
+| withdraw         | `withdraw16x2`    | 1,184 ms |       497 ms |
+| dox withdraw     | `withdrawDox2x2`  |   672 ms |       205 ms |
+| dox withdraw     | `withdrawDox16x2` | 1,130 ms |       463 ms |
+
+Starting barretenberg with the CRS already cached takes 46 ms, and the app peaks at 729 MiB.
+
 ## Building
 
 Prebuilds are built per target with [bare-make](https://github.com/holepunchto/bare-make):
