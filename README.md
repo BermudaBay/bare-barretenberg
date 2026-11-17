@@ -74,7 +74,7 @@ Barretenberg.new = (options) => createBarretenberg(Barretenberg, { ...options, d
 
 To read a deployed chain's circuits from the app's storage too, prefetch them as `files` and set `globalThis.fetch = cachedFetch(dir)`.
 
-[`examples/`](examples) shows the whole wiring in an iOS and an Android app.
+[`examples/`](examples) shows the whole wiring in an iOS and an Android app. To see how fast your iPhone proves, plug it in and run `examples/ios/bench.sh` ([more](examples/README.md#benchmark-on-your-iphone)).
 
 ## Building
 
