@@ -2,7 +2,7 @@
   "name": "@bermuda/bare-barretenberg",
   "version": "0.1.0",
   "description": "Native Noir witness generation and multithreaded barretenberg proving for Bare on iOS and Android",
-  "license": "Apache-2.0",
+  "license": "BUSL-1.1",
   "addon": true,
   "exports": {
     ".": "./src/index.js",
@@ -16,7 +16,8 @@
     "CMakeLists.txt",
     "Cargo.toml",
     "Cargo.lock",
-    "prebuilds"
+    "prebuilds",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "engines": {
     "bare": ">=1.37.0"

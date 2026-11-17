@@ -78,28 +78,20 @@ To read a deployed chain's circuits from the app's storage too, prefetch them as
 
 ## Proving times
 
-The Bermuda SDK at 2f52e09c proved a deposit on each shape it deposits on, and a transfer and a withdrawal on each transact and withdraw shape:
+The Bermuda SDK at 2f52e09c proved a deposit, a transfer and a withdrawal, each on its smallest circuit:
 
 - **iPhone**: natively with this addon, on an iPhone 14 Pro Max (A16, 6 GB, iOS 27.2.1), timed by `examples/ios/bench.sh`.
 - **Browser**: in WebAssembly, as the SDK proves in a web app: noir_js 1.0.0 and bb.js 6.0.0 on 9 threads, in headless Chromium 151 on a MacBook Pro (M1 Pro, 10 cores, 16 GB, macOS 27.0.1). The page did what the iPhone app does, served cross-origin isolated so that bb.js could use threads.
 
-Each time is the mean of six proofs over two runs, witness generation included. A circuit is loaded once, before its first proof; the transfers on 2x4, 4x8 and 2x16 reuse the circuits the deposits loaded:
+Each time is the mean of six proofs over two runs, witness generation included. A circuit is loaded once, before its first proof; the transfer reuses the circuit the deposit loaded:
 
 | Proof        | Circuit           | iPhone proof | iPhone load | Browser proof | Browser load |
 | ------------ | ----------------- | -----------: | ----------: | ------------: | -----------: |
 | deposit      | `transact2x4`     |       830 ms |      278 ms |        989 ms |        41 ms |
-| deposit      | `transact4x8`     |     1,262 ms |      448 ms |      1,317 ms |        54 ms |
-| deposit      | `transact2x16`    |     1,384 ms |      570 ms |      1,421 ms |        63 ms |
 | transfer     | `transact2x4`     |       844 ms |           – |        851 ms |            – |
-| transfer     | `transact4x8`     |     1,286 ms |           – |      1,288 ms |            – |
-| transfer     | `transact2x16`    |     1,402 ms |           – |      1,451 ms |            – |
-| transfer     | `transact16x4`    |     1,360 ms |      586 ms |      1,378 ms |        66 ms |
 | withdraw     | `withdraw2x2`     |       730 ms |      243 ms |        735 ms |        29 ms |
-| withdraw     | `withdraw16x2`    |     1,186 ms |      502 ms |      1,194 ms |        55 ms |
-| dox withdraw | `withdrawDox2x2`  |       673 ms |      206 ms |        671 ms |        26 ms |
-| dox withdraw | `withdrawDox16x2` |     1,141 ms |      469 ms |      1,139 ms |        51 ms |
 
-A deposit to one owner proves on 2x4, of five to eight outputs to one owner on 4x8, and to more owners on 2x16; the SDK never deposits on 16x4. In the browser, the first proof after the page loads takes 1.23–1.26 s while the WebAssembly warms up, which raises the 2x4 deposit's mean; later 2x4 proofs take about 0.85 s.
+In the browser, the first proof after the page loads takes 1.23–1.26 s while the WebAssembly warms up, which raises the deposit's mean; later 2x4 proofs take about 0.85 s.
 
 Starting barretenberg with the CRS already cached takes 38 ms on the iPhone and 396 ms in the browser, which also compiles the WebAssembly and starts its workers. On the iPhone's first start after an install, downloading the CRS took 1.47 s and loading it 535 ms, as barretenberg decompressed its points once; the browser's first start took 1.52 s, download included. At its peak, the iPhone app uses 730 MiB and the browser's page 931 MiB (its renderer process, sampled every 250 ms).
 
@@ -133,4 +125,5 @@ The tests run on macOS with `WebAssembly` removed, as on iOS. They execute a sma
 
 ## License
 
-Apache-2.0
+[BUSL-1.1](./LICENSE). Third-party code keeps its own license; see
+[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
