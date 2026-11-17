@@ -10,3 +10,5 @@ android/build/
 android/app/build/
 android/local.properties
 build/
+# Written by ios/bench.sh.
+ios/results/

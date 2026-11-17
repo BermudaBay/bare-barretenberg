@@ -2,6 +2,16 @@
 
 Minimal iOS (Swift) and Android (Kotlin) apps that run the Bermuda SDK in a [Bare Kit](https://github.com/holepunchto/bare-kit) worklet and prove with `@bermuda/bare-barretenberg`: natively, on all cores, with no WebAssembly.
 
+## Benchmark on your iPhone
+
+You need Xcode with your Apple ID added (Xcode > Settings > Accounts > +; a free one works), [Node.js](https://nodejs.org) and Rust from [rustup.rs](https://rustup.rs).
+
+1. Plug in the iPhone and unlock it.
+2. Run `examples/ios/bench.sh`, from any directory.
+3. Do what it says on the iPhone, such as tapping Trust, turning on Developer Mode or trusting the developer app, then run it again.
+
+The first run builds the prover, which takes about 10-15 minutes; later runs take a couple of minutes. The script installs the npm packages, builds and installs the app, runs it twice and prints the mean time of each step. Each benchmark is saved in `ios/results/`: a line naming the iPhone, its iOS and the versions of bare-barretenberg and the SDK, then each run's raw times. `RUNS=5` runs the app five times; `DEVICE`, `TEAM` and `BUNDLE_ID` pick the iPhone, the Xcode team and the app identifier. The script links and packs the app for devices only, so run `npm run ios` before using the simulator.
+
 ## How the pieces connect
 
 ```
