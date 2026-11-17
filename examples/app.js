@@ -25,11 +25,13 @@ import withdraw16x2 from './node_modules/@bermuda/sdk/build/src/circuits/31337/w
 import withdrawDox2x2 from './node_modules/@bermuda/sdk/build/src/circuits/31337/withdrawDox2x2.json' with { type: 'json' }
 import withdrawDox16x2 from './node_modules/@bermuda/sdk/build/src/circuits/31337/withdrawDox16x2.json' with { type: 'json' }
 
-import shield from './fixtures/shield-2x4.json' with { type: 'json' }
-import transfer2x4 from './fixtures/transfer-2x4.json' with { type: 'json' }
-import transfer4x8 from './fixtures/transfer-4x8.json' with { type: 'json' }
-import transfer2x16 from './fixtures/transfer-2x16.json' with { type: 'json' }
-import transfer16x4 from './fixtures/transfer-16x4.json' with { type: 'json' }
+import deposit2x4 from './fixtures/deposit-2x4.json' with { type: 'json' }
+import deposit4x8 from './fixtures/deposit-4x8.json' with { type: 'json' }
+import deposit2x16 from './fixtures/deposit-2x16.json' with { type: 'json' }
+import transfer2x4 from './fixtures/transact-2x4.json' with { type: 'json' }
+import transfer4x8 from './fixtures/transact-4x8.json' with { type: 'json' }
+import transfer2x16 from './fixtures/transact-2x16.json' with { type: 'json' }
+import transfer16x4 from './fixtures/transact-16x4.json' with { type: 'json' }
 import withdrawal2x2 from './fixtures/withdraw-2x2.json' with { type: 'json' }
 import withdrawal16x2 from './fixtures/withdraw-16x2.json' with { type: 'json' }
 import doxWithdrawal2x2 from './fixtures/withdraw-dox-2x2.json' with { type: 'json' }
@@ -61,10 +63,13 @@ IPC.once('data', async (data) => {
     await prover.warmup()
     report({ step: 'warmup', ms: Date.now() - start })
 
-    // Every shape the SDK transfers and withdraws on. A shield is a deposit on transact2x4.
+    // Every shape the SDK deposits, transfers and withdraws on. A deposit to one owner proves on
+    // 2x4, of five to eight outputs to one owner on 4x8, and to more owners on 2x16.
     const loaded = new Set()
     for (const [step, prove, { circuit, inputs }] of [
-      ['shield 2x4', prover.prove2x4, shield],
+      ['deposit 2x4', prover.prove2x4, deposit2x4],
+      ['deposit 4x8', prover.prove4x8, deposit4x8],
+      ['deposit 2x16', prover.prove2x16, deposit2x16],
       ['transfer 2x4', prover.prove2x4, transfer2x4],
       ['transfer 4x8', prover.prove4x8, transfer4x8],
       ['transfer 2x16', prover.prove2x16, transfer2x16],
@@ -74,10 +79,11 @@ IPC.once('data', async (data) => {
       ['withdrawDox 2x2', prover.withdrawDox2x2, doxWithdrawal2x2],
       ['withdrawDox 16x2', prover.withdrawDox16x2, doxWithdrawal16x2]
     ]) {
-      // The prover keeps only the four circuits it used last, so each is loaded before its proofs.
+      // The prover keeps only the four circuits it used last, so each is loaded before its proofs,
+      // which costs nothing while the prover still holds it. Its first load is reported.
+      start = Date.now()
+      await prover.warmup([circuit])
       if (!loaded.has(circuit)) {
-        start = Date.now()
-        await prover.warmup([circuit])
         report({ step, circuit, loadMs: Date.now() - start })
         loaded.add(circuit)
       }
