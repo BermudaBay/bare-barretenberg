@@ -10,7 +10,7 @@ You need Xcode with your Apple ID added (Xcode > Settings > Accounts > +; a free
 2. Run `examples/ios/bench.sh`, from any directory.
 3. Do what it says on the iPhone, such as tapping Trust, turning on Developer Mode or trusting the developer app, then run it again.
 
-The first run builds the prover, which takes about 10-15 minutes; later runs take a couple of minutes. The script installs the npm packages, builds and installs the app, runs it twice and prints the mean time of each step. Each benchmark is saved in `ios/results/`: a line naming the iPhone, its iOS and the versions of bare-barretenberg and the SDK, then each run's raw times. `RUNS=5` runs the app five times; `DEVICE`, `TEAM` and `BUNDLE_ID` pick the iPhone, the Xcode team and the app identifier. The script links and packs the app for devices only, so run `npm run ios` before using the simulator.
+The first run builds the prover, which takes about 10-15 minutes; later runs take a couple of minutes. The script installs the npm packages, builds and installs the app, runs it twice and prints the mean time of each step, among them a shield and every transfer and withdraw shape. Each benchmark is saved in `ios/results/`: a line naming the iPhone, its iOS and the versions of bare-barretenberg and the SDK, then each run's raw times. `RUNS=5` runs the app five times; `DEVICE`, `TEAM` and `BUNDLE_ID` pick the iPhone, the Xcode team and the app identifier. The script links and packs the app for devices only, so run `npm run ios` before using the simulator.
 
 ## How the pieces connect
 
@@ -23,9 +23,9 @@ App.swift / MainActivity.kt         the native app: starts the worklet, sends it
 
 1. `npm run bundle` has esbuild bundle `app.js` with the SDK and its dependencies into `build/app.cjs`, in CommonJS (see [iOS](#ios) for why). `worklet.js` reports uncaught errors to the app, sets up Bare's Node.js globals (`globals.js`), and `main.js` loads the bundle with the import map `@bermuda/bare-barretenberg/imports`, which hands the SDK this addon in place of `@noir-lang/noir_js` and gives bb.js and ethers what they import from Node.js.
 2. `app.js` points `Barretenberg.new` at `createBarretenberg()` before the first proof, so the SDK's prover runs on native barretenberg.
-3. `app.js` calls `prefetch({ dir })` first, which downloads the CRS once into the app's storage, then the SDK's `warmup()`, which loads barretenberg and the circuits with their verification keys: both off the proving path. The app sends `dir` as its first IPC message.
+3. `app.js` calls `prefetch({ dir })` first, which downloads the CRS once into the app's storage, then the SDK's `warmup()`, which loads barretenberg, and again before each circuit's first proof, which loads the circuit with its verification key: all off the proving path. The SDK's prover keeps only the four circuits it used last, hence one circuit at a time. The app sends `dir` as its first IPC message.
 
-The worklet then proves a shield (`transact2x4`) and a three-input transfer (`transact4x8`) with the SDK's prover, three times each, and reports each proof's time and the peak memory.
+The worklet then proves a shield (`transact2x4`) and a transfer on each transact shape (`transact2x4`, `transact4x8`, `transact2x16`, `transact16x4`), and a withdrawal on each withdraw shape (`withdraw2x2`, `withdraw16x2`, `withdrawDox2x2`, `withdrawDox16x2`), with the SDK's prover, three times each. It reports how long each circuit took to load, each proof's time and the peak memory.
 
 ## Running
 
@@ -61,4 +61,4 @@ Then open `android/` in Android Studio, or run `gradle installDebug` there. `npm
 - The apps run on arm64 devices, the iOS simulator on Apple silicon, and arm64 and x86_64 Android emulators. barretenberg has no build for the x64 iOS simulator.
 - Bare Kit comes from [bare-kit-swift](https://github.com/holepunchto/bare-kit-swift) 2.4.0 and [bare-kit-kotlin](https://github.com/holepunchto/bare-kit-kotlin) v0.2.6, both on Bare 1.37, which the addon and Bare's own modules require.
 - `vendor/bermuda-sdk-0.3.7-arc-2f52e09c.tgz` is `@bermuda/sdk` at commit 2f52e09c, under its own license (BUSL-1.1, in the archive).
-- `fixtures/` holds inputs that the SDK's test harness built for its test chain (31337), whose circuits ship inside the SDK. `app.js` bundles those two circuits and hands them to the SDK through `circuitsBaseUrl`. On a deployed chain, the SDK fetches its circuits from `config.artifacts`: pass them to `prefetch()` as `files` and set `globalThis.fetch = cachedFetch(dir)`, so they are read from the app's storage too.
+- `fixtures/` holds inputs that the SDK's test harness built for its test chain (31337), whose circuits ship inside the SDK. `app.js` bundles the circuits it proves and hands them to the SDK through `circuitsBaseUrl`. On a deployed chain, the SDK fetches its circuits from `config.artifacts`: pass them to `prefetch()` as `files` and set `globalThis.fetch = cachedFetch(dir)`, so they are read from the app's storage too.
