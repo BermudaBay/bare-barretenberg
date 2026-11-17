@@ -31,6 +31,8 @@ final class Run: ObservableObject {
   }
 
   private func start() async {
+    // Proving every shape outlasts the shortest auto-lock, and a locked iPhone suspends the app.
+    UIApplication.shared.isIdleTimerDisabled = true
     do {
       let worklet = try Worklet()
       let ipc = try IPC(worklet: worklet)

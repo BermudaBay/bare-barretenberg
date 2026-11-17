@@ -1,6 +1,7 @@
 #!/bin/bash
-# Measures how fast the plugged-in iPhone proves: builds the prover and the example app, puts the app
-# on the iPhone, runs it twice and saves the times in ios/results/. Run it from anywhere.
+# Measures how fast the plugged-in iPhone proves a shield and every transfer and withdraw shape:
+# builds the prover and the example app, puts the app on the iPhone, runs it twice and saves the
+# times in ios/results/. Run it from anywhere.
 # The first run builds the prover, about 10-15 minutes. Later runs take a couple of minutes.
 #
 # Rarely needed:
@@ -78,7 +79,9 @@ find_iphone() {
   i=0; n=
   while id=$(dev $i.identifier); do
     name=$(dev $i.deviceProperties.name | sed 's/ *$//')
-    if [ "$(dev $i.hardwareProperties.deviceType)" = iPhone ] && dev $i.connectionProperties.transportType >/dev/null &&
+    # devicectl also lists the simulators, as connected to this Mac.
+    if [ "$(dev $i.hardwareProperties.deviceType)" = iPhone ] && [ "$(dev $i.hardwareProperties.reality)" != simulated ] &&
+      dev $i.connectionProperties.transportType >/dev/null &&
       { [ -z "${DEVICE:-}" ] || [ "$DEVICE" = "$id" ] || [ "$DEVICE" = "$name" ]; }; then
       [ -z "$n" ] || stop "More than one iPhone is connected. Unplug the others."
       n=$i
@@ -103,9 +106,16 @@ echo "  $model, iOS $ios"
   stop "Turn on Developer Mode: on the iPhone, Settings > Privacy & Security > Developer Mode > On. It restarts; unlock it, tap Turn On, then run this again."
 
 echo "4/6 Building the app (a few minutes the first time)"
+# Older Xcodes keep the teams in their settings, newer ones may not. An Apple Development
+# certificate always names its team (OU).
 [ -n "${TEAM:-}" ] || TEAM=$({ defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier
   defaults read com.apple.dt.Xcode IDEProvisioningTeams; } 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);.*/\1/p' | head -1)
-[ -n "$TEAM" ] || stop "Add your Apple ID to Xcode: Xcode > Settings > Accounts > +. A free one works."
+[ -n "$TEAM" ] || TEAM=$(security find-certificate -c "Apple Development" -p 2>/dev/null |
+  openssl x509 -noout -subject 2>/dev/null | sed -n -E 's/.*OU ?= ?([A-Z0-9]{10}).*/\1/p')
+# macOS doesn't read preferences through a link, so Xcode can't keep any settings.
+[ -n "$TEAM" ] || [ ! -L ~/Library/Preferences/com.apple.dt.Xcode.plist ] ||
+  stop "Xcode can't save its settings: ~/Library/Preferences/com.apple.dt.Xcode.plist is a link. Quit Xcode, delete the link: rm ~/Library/Preferences/com.apple.dt.Xcode.plist, open Xcode, add your Apple ID again in Xcode > Settings > Accounts, then run this again."
+[ -n "$TEAM" ] || stop "Xcode has no signing certificate yet. In Xcode > Settings > Accounts, select your Apple ID (or add one with +, a free one works), click Manage Certificates, then + > Apple Development. Then run this again."
 BUNDLE_ID=${BUNDLE_ID:-xyz.bermudabay.barretenberg.bench.$(echo "$TEAM" | tr A-Z a-z)}
 build() {
   xcodebuild -project ios/BareBarretenberg.xcodeproj -scheme App -configuration Release -destination "$1" \
@@ -144,21 +154,30 @@ done
 
 echo
 echo "$model, iOS $ios: mean of $RUNS runs"
+# A step's line holds the mean of its times, and the mean time its circuit took to load when the
+# step loaded one.
 node -e '
-const times = {}
+const steps = {}
 let memory = 0
+const mean = (all) => Math.round(all.reduce((a, b) => a + b) / all.length)
 for (const line of require("fs").readFileSync(process.argv[1], "utf8").split("\n")) {
   const json = line.match(/^run \d+: (.*)/)?.[1]
   if (!json) continue
-  const { step, ms, proofBytes, maxRssMiB } = JSON.parse(json)
+  const { step, ms, proofBytes, circuit, loadMs, maxRssMiB } = JSON.parse(json)
   if (step === "done") memory = Math.max(memory, maxRssMiB)
-  else if (ms !== undefined) (times[step] ??= { all: [], proofs: proofBytes !== undefined }).all.push(ms)
+  else {
+    const s = (steps[step] ??= { all: [], proofs: 0, loads: [] })
+    if (ms !== undefined) s.all.push(ms)
+    if (proofBytes !== undefined) s.proofs++
+    if (loadMs !== undefined) s.circuit = circuit, s.loads.push(loadMs)
+  }
 }
-for (const [step, { all, proofs }] of Object.entries(times)) {
-  const mean = Math.round(all.reduce((a, b) => a + b) / all.length)
-  console.log(`  ${step.padEnd(14)}${String(mean).padStart(6)} ms${proofs ? `  (${all.length} proofs)` : ""}`)
+for (const [step, { all, proofs, circuit, loads }] of Object.entries(steps)) {
+  if (all.length === 0) continue
+  const notes = [proofs && `${proofs} proofs`, loads.length && `${circuit} loaded in ${mean(loads)} ms`].filter(Boolean)
+  console.log(`  ${step.padEnd(18)}${String(mean(all)).padStart(6)} ms${notes.length ? `  (${notes.join(", ")})` : ""}`)
 }
-console.log(`  ${"peak memory".padEnd(14)}${String(memory).padStart(6)} MiB`)
+console.log(`  ${"peak memory".padEnd(18)}${String(memory).padStart(6)} MiB`)
 ' "$out"
 echo
 echo "Saved in $out"
