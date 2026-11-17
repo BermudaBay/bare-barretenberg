@@ -78,21 +78,26 @@ To read a deployed chain's circuits from the app's storage too, prefetch them as
 
 ## Proving times
 
-On an iPhone 14 Pro Max (A16, 6 GB, iOS 27.2.1), `examples/ios/bench.sh` timed the Bermuda SDK at 2f52e09c proving a shield and each transfer and withdraw shape. Each time is the mean of six proofs, witness generation included. A circuit is loaded once, before its first proof:
+The Bermuda SDK at 2f52e09c proved a shield and each transfer and withdraw shape:
 
-| Proof            | Circuit           |    Proof | Circuit load |
-| ---------------- | ----------------- | -------: | -----------: |
-| shield           | `transact2x4`     |   831 ms |       268 ms |
-| transfer         | `transact2x4`     |   847 ms |            – |
-| transfer         | `transact4x8`     | 1,274 ms |       453 ms |
-| transfer         | `transact2x16`    | 1,401 ms |       571 ms |
-| transfer         | `transact16x4`    | 1,366 ms |       574 ms |
-| withdraw         | `withdraw2x2`     |   726 ms |       241 ms |
-| withdraw         | `withdraw16x2`    | 1,184 ms |       497 ms |
-| dox withdraw     | `withdrawDox2x2`  |   672 ms |       205 ms |
-| dox withdraw     | `withdrawDox16x2` | 1,130 ms |       463 ms |
+- **iPhone**: natively with this addon, on an iPhone 14 Pro Max (A16, 6 GB, iOS 27.2.1), timed by `examples/ios/bench.sh`.
+- **Browser**: in WebAssembly, as the SDK proves in a web app: noir_js 1.0.0 and bb.js 6.0.0 on 9 threads, in headless Chromium 151 on a MacBook Pro (M1 Pro, 10 cores, 16 GB, macOS 27.0.1). The page did what the iPhone app does, served cross-origin isolated so that bb.js could use threads.
 
-Starting barretenberg with the CRS already cached takes 46 ms, and the app peaks at 729 MiB.
+Each time is the mean of six proofs over two runs, witness generation included. A circuit is loaded once, before its first proof:
+
+| Proof        | Circuit           | iPhone proof | iPhone load | Browser proof | Browser load |
+| ------------ | ----------------- | -----------: | ----------: | ------------: | -----------: |
+| shield       | `transact2x4`     |       831 ms |      268 ms |      1,044 ms |        41 ms |
+| transfer     | `transact2x4`     |       847 ms |           – |        872 ms |            – |
+| transfer     | `transact4x8`     |     1,274 ms |      453 ms |      1,347 ms |        53 ms |
+| transfer     | `transact2x16`    |     1,401 ms |      571 ms |      1,462 ms |        62 ms |
+| transfer     | `transact16x4`    |     1,366 ms |      574 ms |      1,422 ms |        64 ms |
+| withdraw     | `withdraw2x2`     |       726 ms |      241 ms |        787 ms |        30 ms |
+| withdraw     | `withdraw16x2`    |     1,184 ms |      497 ms |      1,192 ms |        56 ms |
+| dox withdraw | `withdrawDox2x2`  |       672 ms |      205 ms |        680 ms |        25 ms |
+| dox withdraw | `withdrawDox16x2` |     1,130 ms |      463 ms |      1,130 ms |        51 ms |
+
+In the browser, the first proof after the page loads takes 1.25–1.47 s while the WebAssembly warms up, which raises the shield's mean; later 2x4 proofs take about 0.86 s. Starting barretenberg with the CRS already cached takes 46 ms on the iPhone and 403 ms in the browser, which also compiles the WebAssembly and starts its workers. At its peak, the iPhone app uses 729 MiB and the browser's page 882 MiB (its renderer process, sampled every 250 ms).
 
 ## Building
 
